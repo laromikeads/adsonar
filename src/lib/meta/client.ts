@@ -25,24 +25,37 @@ const AD_FIELDS = [
 ].join(',');
 
 const ECOM_SIGNALS = [
+  // English
   'buy', 'shop', 'order', 'shipping', 'delivery', 'store', 'product',
   'price', 'offer', 'deal', 'discount', 'sale', 'stock', 'available',
   'checkout', 'cart', 'purchase', 'limited', 'bundle', 'pack', 'kit',
+  // French
   'acheter', 'achetez', 'commandez', 'livraison', 'boutique', 'produit',
-  'prix', 'offre', 'promo', 'reduction', 'soldes', 'disponible',
+  'prix', 'offre', 'promo', 'reduction', 'soldes', 'disponible', 'stock',
   'panier', 'commander', 'expedition', 'gratuit', 'qualite', 'collection',
+  // Arabic
+  'اشتري', 'اطلب', 'توصيل', 'متجر', 'منتج', 'سعر', 'عرض', 'تخفيض',
+  'مخزون', 'متوفر', 'جودة', 'مجاني',
 ];
 
 const NON_ECOM_SIGNALS = [
+  // Arabic drama / streaming (key fix for Algeria market)
+  'مدبلج', 'مسلسل', 'حلقة', 'موسم', 'مشاهدة', 'مسرحية', 'انمي',
+  'دراما', 'رواية', 'قصة', 'روائي',
+  // Streaming / series / entertainment (French/English)
   'episode', 'serie', 'saison', 'regarder', 'watch', 'streaming', 'doublage',
   'film', 'movie', 'drama', 'roman', 'feuilleton', 'tele',
+  // Fiction / books / romance
   'fiction', 'romance', 'novel', 'thriller', 'fantasy', 'manga', 'comic',
   'dark romance', 'love story', 'chapitre', 'chapter', 'lecture',
+  // Dating / social
   'rencontre', 'celibataire', 'dating', 'mariage', 'amor',
+  // News / politics
   'election', 'politique', 'gouvernement', 'president',
+  // Jobs
   'emploi', 'recrutement', 'embauche', 'cdi', 'cdd',
+  // Gambling
   'casino', 'jackpot', 'pari',
-  'this content was removed',
 ];
 
 function isEcomAd(ad: MetaAd): boolean {
@@ -52,6 +65,8 @@ function isEcomAd(ad: MetaAd): boolean {
     ...(ad.ad_creative_link_descriptions || []),
     ...(ad.ad_creative_link_captions || []),
   ].join(' ').toLowerCase();
+
+  if (text.includes('this content was removed')) return false;
 
   if (!text) return true;
 
@@ -152,10 +167,10 @@ function extractProductKeywords(text: string): string[] {
     'les', 'des', 'une', 'est', 'qui', 'que', 'pour', 'dans', 'avec',
     'sur', 'par', 'son', 'ses', 'leur', 'tout', 'plus', 'vous', 'nous',
     'pas', 'comme', 'mais', 'elle', 'ils', 'elles', 'cette', 'comment',
-    'entre', 'sans', 'bien', 'alors', 'aussi', 'dont', 'quand', 'tres',
+    'entre', 'sans', 'bien', 'alors', 'aussi', 'dont', 'quand',
     'votre', 'notre', 'avoir', 'fait', 'passer', 'homme',
     'click', 'shop', 'sale', 'off', 'discount', 'limited', 'order',
-    'voir', 'cliquez', 'decouvrez', 'obtenez', 'achetez', 'maintenant',
+    'voir', 'cliquez', 'obtenez', 'achetez', 'maintenant',
   ]);
 
   const words = text
