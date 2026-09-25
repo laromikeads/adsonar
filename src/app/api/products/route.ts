@@ -7,10 +7,17 @@ export async function GET(request: NextRequest) {
   const trend = searchParams.get('trend');
   const limit = parseInt(searchParams.get('limit') || '30');
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceKey) {
+    return NextResponse.json(
+      { error: `Missing env vars: url=${!!supabaseUrl} key=${!!serviceKey}` },
+      { status: 500 }
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey);
 
   let query = supabase
     .from('products')
