@@ -25,10 +25,6 @@ export function scoreAd(ad: MetaAd): SourcingScore {
   };
 }
 
-/**
- * Trend signal: how recently the ad launched + whether it's still running
- * Fresh ads that are still active = high trend signal
- */
 function scoreTrendSignal(ad: MetaAd): number {
   const isActive = !ad.ad_delivery_stop_time;
   const daysOld = ad.ad_delivery_start_time
@@ -38,12 +34,8 @@ function scoreTrendSignal(ad: MetaAd): number {
     : 999;
 
   let score = 0;
+  if (isActive) score += 40;
 
-  if (isActive) {
-    score += 40;
-  }
-
-  // Recency bonus
   if (daysOld <= 7) score += 60;
   else if (daysOld <= 14) score += 50;
   else if (daysOld <= 30) score += 35;
@@ -54,12 +46,9 @@ function scoreTrendSignal(ad: MetaAd): number {
   return Math.min(100, score);
 }
 
-/**
- * Audience size: larger estimated audience = more market demand
- */
 function scoreAudienceSize(ad: MetaAd): number {
   const size = ad.estimated_audience_size;
-  if (!size) return 30; // neutral if unknown
+  if (!size) return 55;
 
   const avg = (size.lower_bound + size.upper_bound) / 2;
 
@@ -72,10 +61,6 @@ function scoreAudienceSize(ad: MetaAd): number {
   return 10;
 }
 
-/**
- * Ad duration: ads that have run for 7-45 days are "proven" winners
- * Too short = testing phase, too long = saturation
- */
 function scoreAdDuration(ad: MetaAd): number {
   const daysOld = ad.ad_delivery_start_time
     ? Math.floor(
@@ -85,32 +70,25 @@ function scoreAdDuration(ad: MetaAd): number {
   const isActive = !ad.ad_delivery_stop_time;
 
   if (!isActive) {
-    // Dead ads are declining
     return Math.max(0, 30 - daysOld * 0.5);
   }
 
-  // Sweet spot: 7-45 days
-  if (daysOld >= 7 && daysOld <= 45) return 100;
+  if (daysOld >= 3 && daysOld <= 45) return 100;
   if (daysOld > 45 && daysOld <= 90) return 75;
   if (daysOld > 90 && daysOld <= 180) return 50;
   if (daysOld > 180) return 25;
-  if (daysOld < 7) return 60; // Very fresh, promising but unproven
+  if (daysOld < 3) return 75;
   return 30;
 }
 
-/**
- * Engagement potential: multi-platform, rich creative, strong CTA signals
- */
 function scoreEngagementPotential(ad: MetaAd): number {
   let score = 0;
 
-  // Multi-platform presence
   const platforms = ad.publisher_platforms || [];
   if (platforms.length >= 3) score += 30;
   else if (platforms.length === 2) score += 20;
   else if (platforms.length === 1) score += 10;
 
-  // Rich creative (has descriptions, titles, captions)
   const hasTitle = (ad.ad_creative_link_titles?.length || 0) > 0;
   const hasDesc = (ad.ad_creative_link_descriptions?.length || 0) > 0;
   const hasCaption = (ad.ad_creative_link_captions?.length || 0) > 0;
@@ -121,7 +99,6 @@ function scoreEngagementPotential(ad: MetaAd): number {
   if (hasCaption) score += 10;
   if (hasBody) score += 10;
 
-  // Regional coverage
   const regions = ad.delivery_by_region || [];
   if (regions.length >= 5) score += 20;
   else if (regions.length >= 2) score += 10;
