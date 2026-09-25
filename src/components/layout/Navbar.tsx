@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, TrendingUp, LayoutDashboard, Bookmark } from 'lucide-react';
+import { Search, TrendingUp, LayoutDashboard, Bookmark, Zap } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Search', icon: Search },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/products', label: 'Sourcing', icon: Zap },
+  { href: '/dashboard', label: 'Analysis', icon: LayoutDashboard },
   { href: '/dashboard?tab=saved', label: 'Saved', icon: Bookmark },
 ];
 
@@ -29,15 +30,10 @@ export default function Navbar() {
             {navItems.map(({ href, label, icon: Icon }) => {
               const active = pathname === href || (href !== '/' && pathname.startsWith(href.split('?')[0]));
               return (
-                <Link
-                  key={href}
-                  href={href}
+                <Link key={href} href={href}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    active
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                  }`}
-                >
+                    active ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}>
                   <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{label}</span>
                 </Link>
