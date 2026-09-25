@@ -4,17 +4,17 @@ import { extractFingerprint } from '@/lib/analysis/fingerprint';
 import { createClient } from '@supabase/supabase-js';
 
 const CRAWL_KEYWORDS = [
-  'توصيل مجاني',
   'اطلب الان',
-  'متوفر بالجزائر',
-  'توصيل لـ 58 ولاية',
-  'جودة عالية',
-  'livraison gratuite',
+  'توصيل لولايات',
+  'توصيل 58 ولاية',
+  'منتج اصلي',
+  'منتوج جزائري',
   'commandez maintenant',
-  'livraison rapide',
-  'disponible en algerie',
-  'free shipping algeria',
-  'shop now',
+  'commander en algerie',
+  'acheter en algerie',
+  'livraison wilaya',
+  'livraison gratuite algerie',
+  'livraison 58 wilaya',
 ];
 
 const CRAWL_COUNTRY = 'DZ';
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
       for (const ad of ads) {
         const { fingerprint, name, keywords } = extractFingerprint(ad);
-        if (!fingerprint || fingerprint === 'unknown') continue;
+        if (!fingerprint || fingerprint === 'no-text') continue;
 
         const { error: snapError } = await supabase
           .from('ad_snapshots')
@@ -77,14 +77,14 @@ export async function GET(request: NextRequest) {
           );
 
         if (snapError) {
-          results.errors.push(`Snapshot error: ${snapError.message}`);
+          results.errors.push(`Snapshot: ${snapError.message}`);
           continue;
         }
         results.ads_stored++;
 
         const { data: existing } = await supabase
           .from('products')
-          .select('seller_count, avg_score')
+          .select('seller_count')
           .eq('fingerprint', fingerprint)
           .single();
 
@@ -94,7 +94,9 @@ export async function GET(request: NextRequest) {
           .eq('product_fingerprint', fingerprint)
           .eq('crawl_date', new Date().toISOString().split('T')[0]);
 
-        const uniqueSellers = new Set((sellerData || []).map((r: { page_id: string }) => r.page_id)).size;
+        const uniqueSellers = new Set(
+          (sellerData || []).map((r: { page_id: string }) => r.page_id)
+        ).size;
 
         const prevCount = existing?.seller_count || 0;
         let trend: 'rising' | 'stable' | 'declining' = 'stable';
@@ -138,7 +140,7 @@ export async function GET(request: NextRequest) {
       await new Promise((r) => setTimeout(r, 500));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      results.errors.push(`Keyword "${keyword}": ${msg}`);
+      results.errors.push(`"${keyword}": ${msg}`);
     }
   }
 
