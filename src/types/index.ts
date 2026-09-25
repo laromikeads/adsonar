@@ -64,6 +64,7 @@ export interface SearchParams {
   category?: string;
   after?: string;
   limit?: number;
+  ecomOnly?: boolean;
 }
 
 export interface SearchResult {
