@@ -24,11 +24,52 @@ const AD_FIELDS = [
   'publisher_platforms',
 ].join(',');
 
+const ECOM_SIGNALS = [
+  'buy', 'shop', 'order', 'shipping', 'delivery', 'store', 'product',
+  'price', 'offer', 'deal', 'discount', 'sale', 'stock', 'available',
+  'checkout', 'cart', 'purchase', 'limited', 'bundle', 'pack', 'kit',
+  'acheter', 'achetez', 'commandez', 'livraison', 'boutique', 'produit',
+  'prix', 'offre', 'promo', 'réduction', 'soldes', 'disponible', 'stock',
+  'panier', 'commander', 'expédition', 'gratuit', 'qualité', 'collection',
+  'اشتري', 'اطلب', 'توصيل', 'متجر', 'منتج', 'سعر', 'عرض', 'تخفيض',
+  'مخزون', 'متوفر', 'جودة', 'مجاني',
+];
+
+const NON_ECOM_SIGNALS = [
+  'episode', 'série', 'saison', 'regarder', 'watch', 'streaming', 'doublage',
+  'film', 'movie', 'drama', 'feuilleton', 'télé',
+  'rencontre', 'célibataire', 'dating',
+  'élection', 'politique', 'gouvernement',
+  'emploi', 'recrutement', 'embauche',
+  'casino', 'paris sportifs', 'jackpot',
+];
+
+function isEcomAd(ad: MetaAd): boolean {
+  const text = [
+    ...(ad.ad_creative_bodies || []),
+    ...(ad.ad_creative_link_titles || []),
+    ...(ad.ad_creative_link_descriptions || []),
+    ...(ad.ad_creative_link_captions || []),
+  ].join(' ').toLowerCase();
+
+  if (!text) return true;
+
+  const hasNonEcom = NON_ECOM_SIGNALS.some((signal) => text.includes(signal));
+  if (hasNonEcom) return false;
+
+  const hasEcom = ECOM_SIGNALS.some((signal) => text.includes(signal));
+  const hasLink = !!(ad.ad_creative_link_titles?.length || ad.ad_creative_link_captions?.length);
+
+  return hasEcom || hasLink;
+}
+
 export async function searchMetaAds(params: SearchParams): Promise<SearchResult> {
   const token = process.env.META_ACCESS_TOKEN;
   if (!token) {
     throw new Error('META_ACCESS_TOKEN is not configured');
   }
+
+  const fetchLimit = Math.min((params.limit || 30) * 3, 100);
 
   const url = new URL(META_AD_LIBRARY_BASE);
   url.searchParams.set('access_token', token);
@@ -36,7 +77,7 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
   url.searchParams.set('ad_reached_countries', `["${params.country}"]`);
   url.searchParams.set('ad_type', params.adType || 'ALL');
   url.searchParams.set('fields', AD_FIELDS);
-  url.searchParams.set('limit', String(params.limit || 30));
+  url.searchParams.set('limit', String(fetchLimit));
 
   if (params.after) {
     url.searchParams.set('after', params.after);
@@ -56,7 +97,9 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
   const raw = await response.json();
   const ads: MetaAd[] = raw.data || [];
 
-  const enriched = ads.map((ad) => {
+  const ecomAds = params.ecomOnly !== false ? ads.filter(isEcomAd) : ads;
+
+  const enriched = ecomAds.map((ad) => {
     const score = scoreAd(ad);
     const body = ad.ad_creative_bodies?.[0] || '';
     const productKeywords = extractProductKeywords(body);
@@ -89,7 +132,7 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
   enriched.sort((a, b) => b.sourcingScore.overall - a.sourcingScore.overall);
 
   return {
-    data: enriched,
+    data: enriched.slice(0, params.limit || 30),
     paging: raw.paging,
     total: enriched.length,
   };
@@ -105,13 +148,20 @@ function extractProductKeywords(text: string): string[] {
     'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
     'will', 'would', 'could', 'should', 'may', 'might', 'can', 'get',
     'now', 'free', 'today', 'new', 'just', 'only', 'also', 'more',
+    'les', 'des', 'une', 'est', 'qui', 'que', 'pour', 'dans', 'avec',
+    'sur', 'par', 'son', 'ses', 'leur', 'tout', 'plus', 'vous', 'nous',
+    'pas', 'comme', 'mais', 'elle', 'ils', 'elles', 'cette', 'comment',
+    'entre', 'sans', 'bien', 'alors', 'aussi', 'dont', 'quand', 'très',
+    'votre', 'notre', 'avoir', 'fait', 'passer', 'pour', 'homme',
+    'click', 'shop', 'sale', 'off', 'discount', 'limited', 'order',
+    'voir', 'cliquez', 'découvrez', 'obtenez', 'achetez', 'maintenant',
   ]);
 
   const words = text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/[^\p{L}0-9\s]/gu, ' ')
     .split(/\s+/)
-    .filter((w) => w.length > 3 && !stopWords.has(w));
+    .filter((w) => w.length > 4 && !stopWords.has(w));
 
   return [...new Set(words)].slice(0, 8);
 }
