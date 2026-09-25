@@ -1,7 +1,7 @@
 import { MetaAd, SearchParams, SearchResult } from '@/types';
 import { scoreAd } from '@/lib/analysis/scorer';
 
-const META_AD_LIBRARY_BASE = 'https://graph.facebook.com/v19.0/ads_archive';
+const META_AD_LIBRARY_BASE = 'https://graph.facebook.com/v21.0/ads_archive';
 
 const AD_FIELDS = [
   'id',
@@ -22,7 +22,6 @@ const AD_FIELDS = [
   'spend',
   'languages',
   'publisher_platforms',
-  'region_distribution',
 ].join(',');
 
 export async function searchMetaAds(params: SearchParams): Promise<SearchResult> {
@@ -44,7 +43,7 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
   }
 
   const response = await fetch(url.toString(), {
-    next: { revalidate: 300 }, // cache 5 min
+    next: { revalidate: 300 },
   });
 
   if (!response.ok) {
@@ -87,7 +86,6 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
     };
   });
 
-  // Sort by sourcing score
   enriched.sort((a, b) => b.sourcingScore.overall - a.sourcingScore.overall);
 
   return {
