@@ -17,7 +17,6 @@ export interface MetaAd {
   spend?: RangeValue;
   languages?: string[];
   publisher_platforms?: string[];
-  region_distribution?: RegionDistribution[];
 }
 
 export interface DemographicEntry {
@@ -39,11 +38,6 @@ export interface AudienceSize {
 export interface RangeValue {
   lower_bound: string;
   upper_bound: string;
-}
-
-export interface RegionDistribution {
-  region: string;
-  percentage: string;
 }
 
 export interface SourcingScore {
