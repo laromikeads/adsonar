@@ -1,7 +1,7 @@
 import { MetaAd, SearchParams, SearchResult } from '@/types';
 import { scoreAd } from '@/lib/analysis/scorer';
 
-const META_AD_LIBRARY_BASE = 'https://graph.facebook.com/v21.0/ads_archive';
+const META_AD_LIBRARY_BASE = 'https://graph.facebook.com/v26.0/ads_archive';
 
 const AD_FIELDS = [
   'id',
@@ -101,6 +101,7 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
   const url = new URL(META_AD_LIBRARY_BASE);
   url.searchParams.set('access_token', token);
   url.searchParams.set('search_terms', params.query);
+  url.searchParams.set('search_type', 'keyword_unordered'); // match Ad Library website behavior
   url.searchParams.set('ad_reached_countries', `["${params.country}"]`);
   url.searchParams.set('ad_type', params.adType || 'ALL');
   url.searchParams.set('fields', AD_FIELDS);
