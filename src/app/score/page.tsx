@@ -3,44 +3,123 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 
+// ── Signal lists ──────────────────────────────────────────────
 const STRONG_SIGNALS = [
-  'الدفع عند الاستلام', 'الدفع عند الإستلام', 'باب منزل', 'باب دارك', 'باب المنزل',
-  'توصيل لجميع', 'توصيل مجاني', 'livraison gratuite', 'livraison rapide',
-  'اطلب الآن', 'اطلب الان', 'commandez maintenant', 'order now',
-  'آلاف الطلبات', 'آلاف العملاء', 'نفذ المخزون', 'كميات محدودة',
-  'stock limité', 'rupture de stock', 'sold out', 'limited stock',
-  'تخفيض', 'عرض خاص', 'promotion', 'promo', 'soldes', 'offre limitée',
+  'الدفع عند الاستلام','الدفع عند الإستلام','باب منزل','باب دارك','باب المنزل',
+  'توصيل لجميع','توصيل مجاني','livraison gratuite','livraison rapide',
+  'اطلب الآن','اطلب الان','commandez maintenant','order now',
+  'آلاف الطلبات','آلاف العملاء','نفذ المخزون','كميات محدودة',
+  'stock limité','rupture de stock','sold out','limited stock',
+  'تخفيض','عرض خاص','promotion','promo','soldes','offre limitée',
 ];
-
 const BASIC_SIGNALS = [
-  'توصيل', 'اطلب', 'اشتري', 'للطلب', 'متجر', 'منتج', 'سعر', 'مخزون', 'متوفر', 'ولاية',
-  'اطلبه', 'اطلبها', 'اطلبي', 'اطلبو',
-  'livraison', 'commander', 'commandez', 'acheter', 'achetez',
-  'boutique', 'produit', 'prix', 'wilaya',
-  'delivery', 'buy now', 'shop now', 'add to cart',
+  'توصيل','اطلب','اشتري','للطلب','متجر','منتج','سعر','مخزون','متوفر','ولاية',
+  'اطلبه','اطلبها','اطلبي','اطلبو',
+  'livraison','commander','commandez','acheter','achetez',
+  'boutique','produit','prix','wilaya',
+  'delivery','buy now','shop now','add to cart',
 ];
 
-function scoreAd(text: string) {
-  const t = text.toLowerCase();
-  const strongCount = STRONG_SIGNALS.filter(s => t.includes(s.toLowerCase())).length;
-  const basicCount = BASIC_SIGNALS.filter(s => t.includes(s.toLowerCase())).length;
-  const score = Math.min(strongCount * 25 + basicCount * 10, 99);
-  if (score >= 75) return { score, label: '🔥 Hot', color: '#166534', bg: '#f0fdf4', border: '#86efac' };
-  if (score >= 50) return { score, label: '✅ Good', color: '#1e40af', bg: '#eff6ff', border: '#93c5fd' };
-  if (score >= 25) return { score, label: '~ Weak', color: '#92400e', bg: '#fffbeb', border: '#fcd34d' };
-  return { score, label: '○ Low', color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb' };
-}
+// ── Generic words to ignore in keyword extraction ─────────────
+const GENERIC = new Set([
+  'الجودة','الأفضل','الأحسن','الحل','المثالي','بسهولة','اليوم','الان','الأن',
+  'يومية','عالية','قوية','سريع','سريعة','مريح','مريحة','جميل','جميلة',
+  'أصلي','أصلية','خفيف','خفيفة','ممتاز','رائع','رائعة','مضمون','للجميع',
+  'للرجال','للنساء','مناسب','مناسبة','مثالي','مثالية','احسن','افضل',
+  'كبير','صغير','جديد','جديدة','ممتازة','خاص','خاصة',
+  'shop','store','now','free','click','voir','prix','bon','top','best',
+  'plus','pour','avec','dans','notre','vous','style','mode','qualite',
+  'taille','couleur','design','produit','article','marque','livraison','achat',
+]);
 
-type AdResult = {
-  id: string;
-  text: string;
-  score: number;
-  label: string;
-  color: string;
-  bg: string;
-  border: string;
+const MONTHS: Record<string, number> = {
+  jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11,
 };
 
+// ── Helpers ───────────────────────────────────────────────────
+function parseDays(text: string): number {
+  const m = text.match(/started running on\s+(\d{1,2})\s+(\w+)\s+(\d{4})/i);
+  if (!m) return 0;
+  const d = parseInt(m[1]);
+  const month = MONTHS[m[2].toLowerCase().slice(0, 3)];
+  const y = parseInt(m[3]);
+  if (month === undefined) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(y, month, d).getTime()) / 864e5));
+}
+
+function getAdBody(text: string): string {
+  const m = text.match(/Sponsored\n([\s\S]{10,500})/);
+  return m ? m[1].slice(0, 400) : text.slice(0, 400);
+}
+
+function getKeywords(body: string): string[] {
+  const words = body
+    .replace(/[^؀-ۿݐ-ݿa-zA-Z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 5 && !GENERIC.has(w.toLowerCase()));
+  const freq: Record<string, number> = {};
+  words.forEach(w => { const k = w.toLowerCase(); freq[k] = (freq[k] || 0) + 1; });
+  return Object.keys(freq).sort((a, b) => freq[b] - freq[a]).slice(0, 4);
+}
+
+// ── Scoring ───────────────────────────────────────────────────
+type AdInput = { id: string; text: string; pageName: string };
+
+function scoreAd(ad: AdInput, allAds: AdInput[]) {
+  const text = ad.text;
+  const t = text.toLowerCase();
+  const body = getAdBody(text);
+  const kw = getKeywords(body);
+  const days = parseDays(text);
+
+  // 1. Days running (max 40 pts)
+  let daysScore = 0;
+  if (days >= 90) daysScore = 40;
+  else if (days >= 60) daysScore = 32;
+  else if (days >= 30) daysScore = 22;
+  else if (days >= 14) daysScore = 12;
+  else if (days >= 7) daysScore = 5;
+
+  // 2. Product velocity — other DIFFERENT pages with 2+ matching keywords (max 30 pts)
+  const productMatches = kw.length >= 2
+    ? allAds.filter(o =>
+        o.id !== ad.id &&
+        o.pageName !== ad.pageName &&
+        getKeywords(getAdBody(o.text)).filter(k => kw.includes(k)).length >= 2
+      ).length
+    : 0;
+  let velocityScore = 0;
+  if (productMatches >= 5) velocityScore = 30;
+  else if (productMatches >= 3) velocityScore = 22;
+  else if (productMatches >= 2) velocityScore = 14;
+  else if (productMatches >= 1) velocityScore = 7;
+
+  // 3. Spend range (max 15 pts, bonus when visible)
+  const spendMatch = text.match(/[€$£﷼]([\d,]+)\s*[-–]/);
+  const spend = spendMatch ? parseInt(spendMatch[1].replace(/,/g, '')) : 0;
+  let spendScore = 0;
+  if (spend >= 5000) spendScore = 15;
+  else if (spend >= 1000) spendScore = 10;
+  else if (spend >= 100) spendScore = 5;
+
+  // 4. Keywords (max 10 pts)
+  const strongCount = STRONG_SIGNALS.filter(s => t.includes(s.toLowerCase())).length;
+  const basicCount = BASIC_SIGNALS.filter(s => t.includes(s.toLowerCase())).length;
+  const kwScore = Math.min(strongCount * 4 + basicCount * 1, 10);
+
+  const score = Math.min(daysScore + velocityScore + spendScore + kwScore, 99);
+
+  const breakdown = { days, daysScore, productMatches, velocityScore, spendScore, kwScore };
+
+  if (score >= 75) return { score, label: '🔥 Hot', color: '#166534', bg: '#f0fdf4', border: '#86efac', breakdown };
+  if (score >= 50) return { score, label: '✅ Good', color: '#1e40af', bg: '#eff6ff', border: '#93c5fd', breakdown };
+  if (score >= 25) return { score, label: '~ Weak', color: '#92400e', bg: '#fffbeb', border: '#fcd34d', breakdown };
+  return { score, label: '○ Low', color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', breakdown };
+}
+
+type AdResult = AdInput & ReturnType<typeof scoreAd>;
+
+// ── Page ──────────────────────────────────────────────────────
 export default function ScorePage() {
   const [results, setResults] = useState<AdResult[]>([]);
   const [status, setStatus] = useState('Waiting for ad data...');
@@ -50,9 +129,11 @@ export default function ScorePage() {
       if (event.origin !== 'https://www.facebook.com') return;
       const data = event.data;
       if (!data || !Array.isArray(data.ads)) return;
-      const ads: { id: string; text: string }[] = data.ads;
+      const ads: AdInput[] = data.ads.filter((a: AdInput) =>
+        a.pageName && !a.pageName.includes('INSTAGRAM') && !a.pageName.includes('Visit') && !a.pageName.includes('Send')
+      );
       if (ads.length === 0) { setStatus('No ads found.'); return; }
-      const scored = ads.map(ad => ({ id: ad.id, text: ad.text, ...scoreAd(ad.text) }));
+      const scored = ads.map(ad => ({ ...ad, ...scoreAd(ad, ads) }));
       scored.sort((a, b) => b.score - a.score);
       setResults(scored);
       setStatus('');
@@ -90,10 +171,24 @@ export default function ScorePage() {
               {results.map((r, i) => (
                 <div key={r.id} style={{ background: r.bg, borderColor: r.border }} className="border rounded-xl p-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-400 font-medium">Ad {i + 1}</span>
-                    <span style={{ color: r.color }} className="font-bold text-sm">{r.label}{r.score > 0 ? ` (${r.score})` : ''}</span>
+                    <span className="text-xs text-gray-500 font-semibold truncate max-w-[60%]">{r.pageName}</span>
+                    <span style={{ color: r.color }} className="font-bold text-sm shrink-0">{r.label} ({r.score})</span>
                   </div>
-                  <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">{r.text.slice(0, 200) || '(image only)'}</p>
+                  <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed mb-2">{getAdBody(r.text).slice(0, 120) || '(image only)'}</p>
+                  <div className="flex flex-wrap gap-1.5 text-xs">
+                    {r.breakdown.days > 0 && (
+                      <span className="bg-white/80 border border-gray-200 rounded-full px-2 py-0.5 text-gray-500">📅 {r.breakdown.days}d</span>
+                    )}
+                    {r.breakdown.productMatches > 0 && (
+                      <span className="bg-white/80 border border-gray-200 rounded-full px-2 py-0.5 text-gray-500">⚡ {r.breakdown.productMatches} sellers</span>
+                    )}
+                    {r.breakdown.spendScore > 0 && (
+                      <span className="bg-white/80 border border-gray-200 rounded-full px-2 py-0.5 text-gray-500">💰 spend</span>
+                    )}
+                    {r.breakdown.kwScore > 0 && (
+                      <span className="bg-white/80 border border-gray-200 rounded-full px-2 py-0.5 text-gray-500">🎯 ecom signals</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
