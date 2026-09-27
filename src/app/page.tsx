@@ -78,10 +78,10 @@ export default function HomePage() {
     if (!result) return [];
     const ads = [...result.data];
     switch (sortBy) {
-      case 'score':  return ads.sort((a, b) => b.sourcingScore.overall - a.sourcingScore.overall);
-      case 'newest': return ads.sort((a, b) => a.daysSinceLaunch - b.daysSinceLaunch);
-      case 'oldest': return ads.sort((a, b) => b.daysSinceLaunch - a.daysSinceLaunch);
-      default:       return ads; // meta rank = API order
+      case 'score':   return ads.sort((a, b) => b.sourcingScore.overall - a.sourcingScore.overall);
+      case 'newest':  return ads.sort((a, b) => b.daysSinceLaunch - a.daysSinceLaunch === 0 ? 0 : a.daysSinceLaunch - b.daysSinceLaunch);
+      case 'oldest':  return ads.sort((a, b) => b.daysSinceLaunch - a.daysSinceLaunch);
+      default:        return ads;
     }
   }, [result, sortBy]);
 
@@ -159,7 +159,7 @@ export default function HomePage() {
         {/* Filter panel */}
         {showFilters && (
           <div className="border-t border-gray-100 pt-3 flex flex-wrap gap-4 items-center">
-            {/* Active only toggle */}
+            {/* Active only */}
             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
               <div
                 onClick={() => setActiveOnly(!activeOnly)}
@@ -170,7 +170,7 @@ export default function HomePage() {
               Active ads only
             </label>
 
-            {/* Platform pills */}
+            {/* Platform */}
             <div className="flex items-center gap-1 flex-wrap">
               {PLATFORMS.map((p) => (
                 <button
@@ -188,7 +188,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Clear */}
+            {/* Clear filters */}
             {activeFilterCount > 0 && (
               <button
                 type="button"
@@ -209,7 +209,7 @@ export default function HomePage() {
               <button
                 key={q}
                 type="button"
-                onClick={() => { setQuery(q); setTimeout(() => search(false), 0); }}
+                onClick={() => { setQuery(q); setTimeout(() => inputRef.current?.form?.requestSubmit(), 0); }}
                 className="text-xs bg-gray-100 hover:bg-blue-100 hover:text-blue-700 text-gray-600 rounded-full px-3 py-1 transition-colors"
               >
                 {q}
@@ -260,7 +260,7 @@ export default function HomePage() {
               {activeOnly && <p className="text-xs text-blue-600 mt-0.5">Active ads only</p>}
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400">Sort:</span>
               <div className="flex gap-1">
                 {SORT_OPTIONS.map((s) => (
@@ -277,11 +277,12 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
+
               
                 href={`/dashboard?query=${encodeURIComponent(query)}&country=${country}`}
-                className="text-xs text-blue-600 hover:underline font-medium ml-1 whitespace-nowrap"
+                className="text-xs text-blue-600 hover:underline font-medium ml-2 whitespace-nowrap"
               >
-                Full analysis →
+                Full analysis &#8594;
               </a>
             </div>
           </div>
@@ -312,7 +313,9 @@ export default function HomePage() {
         <div className="text-center py-16 text-gray-400">
           <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="text-lg font-medium">Search any product to see real Meta ads</p>
-          <p className="text-sm mt-1">Same results as Ad Library — with a sourcing score layered on top</p>
+          <p className="text-sm mt-1">
+            Same results as Ad Library — with a sourcing score layered on top
+          </p>
         </div>
       )}
     </div>
