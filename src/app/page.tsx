@@ -79,7 +79,7 @@ export default function HomePage() {
     const ads = [...result.data];
     switch (sortBy) {
       case 'score':   return ads.sort((a, b) => b.sourcingScore.overall - a.sourcingScore.overall);
-      case 'newest':  return ads.sort((a, b) => b.daysSinceLaunch - a.daysSinceLaunch === 0 ? 0 : a.daysSinceLaunch - b.daysSinceLaunch);
+      case 'newest':  return ads.sort((a, b) => a.daysSinceLaunch - b.daysSinceLaunch);
       case 'oldest':  return ads.sort((a, b) => b.daysSinceLaunch - a.daysSinceLaunch);
       default:        return ads;
     }
@@ -90,7 +90,6 @@ export default function HomePage() {
 
   return (
     <div className="space-y-5">
-      {/* Hero */}
       <div className="text-center py-6">
         <div className="flex items-center justify-center gap-2 mb-2">
           <TrendingUp className="w-7 h-7 text-blue-600" />
@@ -101,7 +100,6 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Search bar */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 space-y-3">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <div className="relative flex-1">
@@ -116,7 +114,6 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Country */}
           <select
             value={country}
             onChange={(e) => setCountry(e.target.value)}
@@ -127,7 +124,6 @@ export default function HomePage() {
             ))}
           </select>
 
-          {/* Filters toggle */}
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
@@ -156,10 +152,8 @@ export default function HomePage() {
           </button>
         </form>
 
-        {/* Filter panel */}
         {showFilters && (
           <div className="border-t border-gray-100 pt-3 flex flex-wrap gap-4 items-center">
-            {/* Active only */}
             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
               <div
                 onClick={() => setActiveOnly(!activeOnly)}
@@ -170,7 +164,6 @@ export default function HomePage() {
               Active ads only
             </label>
 
-            {/* Platform */}
             <div className="flex items-center gap-1 flex-wrap">
               {PLATFORMS.map((p) => (
                 <button
@@ -188,7 +181,6 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Clear filters */}
             {activeFilterCount > 0 && (
               <button
                 type="button"
@@ -201,7 +193,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Quick searches */}
         {!result && !loading && (
           <div className="flex flex-wrap gap-1.5 items-center">
             <span className="text-xs text-gray-400">Try:</span>
@@ -219,7 +210,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
           <strong>Error:</strong> {error}
@@ -229,7 +219,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Loading skeleton */}
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -246,7 +235,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Results */}
       {result && !loading && (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -277,12 +265,11 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
-
               
-                href={`/dashboard?query=${encodeURIComponent(query)}&country=${country}`}
+                href={'/dashboard?query=' + encodeURIComponent(query) + '&country=' + country}
                 className="text-xs text-blue-600 hover:underline font-medium ml-2 whitespace-nowrap"
               >
-                Full analysis &#8594;
+                {'Full analysis →'}
               </a>
             </div>
           </div>
@@ -308,7 +295,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Empty state */}
       {!result && !loading && !error && (
         <div className="text-center py-16 text-gray-400">
           <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
