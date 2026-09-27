@@ -92,8 +92,8 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
     throw new Error('META_ACCESS_TOKEN is not configured');
   }
 
-  // Only over-fetch when ecomOnly is on (to compensate for filtering).
-  // Regular searches fetch exactly what was requested.
+  // When ecomOnly is on we over-fetch to compensate for filtering.
+  // Otherwise fetch exactly what was requested.
   const fetchLimit = params.ecomOnly
     ? Math.min((params.limit || 30) * 3, 100)
     : Math.min(params.limit || 30, 100);
@@ -121,7 +121,7 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
   }
 
   const response = await fetch(url.toString(), {
-    next: { revalidate: 60 }, // 1 min cache — close to live
+    next: { revalidate: 60 }, // 1 min cache — closer to live
   });
 
   if (!response.ok) {
@@ -134,7 +134,7 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
   const raw = await response.json();
   const ads: MetaAd[] = raw.data || [];
 
-  // ecomOnly is opt-in — used by the crawl only, OFF for regular search
+  // ecomOnly is opt-in (used by crawl), OFF by default for search
   const ecomAds = params.ecomOnly ? ads.filter(isEcomAd) : ads;
 
   const enriched = ecomAds.map((ad) => {
@@ -167,7 +167,9 @@ export async function searchMetaAds(params: SearchParams): Promise<SearchResult>
     };
   });
 
-  enriched.sort((a, b) => b.sourcingScore.overall - a.sourcingScore.overall);
+  // Do NOT sort here — preserve Meta's natural rank order.
+  // The frontend sortedAds() handles all sorting (score, newest, oldest, meta rank).
+  // Sorting here would break "Meta Rank" which should mirror Ad Library order.
 
   return {
     data: enriched.slice(0, params.limit || 30),
