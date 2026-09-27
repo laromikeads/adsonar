@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Sourcing strength signals — more = stronger product ad
 const STRONG_SIGNALS = [
+  // Delivery / urgency
   'الدفع عند الاستلام', 'الدفع عند الإستلام', 'باب منزل', 'باب دارك', 'باب المنزل',
   'توصيل لجميع', 'توصيل مجاني', 'livraison gratuite', 'livraison rapide',
   'اطلب الآن', 'اطلب الان', 'commandez maintenant', 'order now',
+  // Proof / social
   'آلاف الطلبات', 'آلاف العملاء', 'نفذ المخزون', 'كميات محدودة',
   'stock limité', 'rupture de stock', 'sold out', 'limited stock',
+  // Price / offer
   'تخفيض', 'عرض خاص', 'promotion', 'promo', 'soldes', 'offre limitée',
 ];
 
@@ -31,6 +35,12 @@ function scoreAd(text: string): { score: number; label: string; color: string } 
   return { score, label: '○ Low', color: '#6b7280' };
 }
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const ads: { id: string; text: string; pageName: string }[] = body.ads || [];
@@ -41,16 +51,9 @@ export async function POST(request: NextRequest) {
     ...scoreAd(ad.text),
   }));
 
-  return NextResponse.json({ results });
+  return NextResponse.json({ results }, { headers: CORS_HEADERS });
 }
 
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+  return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
 }
