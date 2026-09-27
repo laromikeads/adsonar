@@ -125,21 +125,49 @@ export default function ScorePage() {
   const [status, setStatus] = useState('Waiting for ad data...');
 
   useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      if (event.origin !== 'https://www.facebook.com') return;
-      const data = event.data;
-      if (!data || !Array.isArray(data.ads)) return;
-      const ads: AdInput[] = data.ads.filter((a: AdInput) =>
+    let received = false;
+
+    function processAds(ads: AdInput[]) {
+      if (received) return;
+      received = true;
+      const filtered = ads.filter((a: AdInput) =>
         a.pageName && !a.pageName.includes('INSTAGRAM') && !a.pageName.includes('Visit') && !a.pageName.includes('Send')
       );
-      if (ads.length === 0) { setStatus('No ads found.'); return; }
-      const scored = ads.map(ad => ({ ...ad, ...scoreAd(ad, ads) }));
+      if (filtered.length === 0) { setStatus('No ads found.'); return; }
+      const scored = filtered.map(ad => ({ ...ad, ...scoreAd(ad, filtered) }));
       scored.sort((a, b) => b.score - a.score);
       setResults(scored);
       setStatus('');
     }
+
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== 'https://www.facebook.com') return;
+      const data = event.data;
+      if (!data || data.type !== 'adsonar' || !Array.isArray(data.ads)) return;
+      // Tell the opener to stop sending
+      try { event.source && (event.source as Window).postMessage({ type: 'adsonar_ack' }, event.origin); } catch {}
+      processAds(data.ads);
+    }
+
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+
+    // Also check if opener already stored data (race condition fallback)
+    const check = setInterval(() => {
+      try {
+        const opener = window.opener;
+        if (opener && opener.__adsonar_data) {
+          clearInterval(check);
+          processAds(opener.__adsonar_data);
+        }
+      } catch {}
+    }, 300);
+
+    setTimeout(() => clearInterval(check), 15000);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearInterval(check);
+    };
   }, []);
 
   const hot = results.filter(r => r.score >= 75).length;
