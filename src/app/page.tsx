@@ -264,7 +264,7 @@ export default function HomePage() {
                     {s.label}
                   </button>
                 ))}
-              </div>
+                          </div>
               
                 href={'/dashboard?query=' + encodeURIComponent(query) + '&country=' + country}
                 className="text-xs text-blue-600 hover:underline font-medium ml-2 whitespace-nowrap"
