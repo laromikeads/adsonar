@@ -200,4 +200,106 @@ export default function HomePage() {
               <button
                 key={q}
                 type="button"
-                onClick={() => {
+                onClick={() => { setQuery(q); setTimeout(() => inputRef.current?.form?.requestSubmit(), 0); }}
+                className="text-xs bg-gray-100 hover:bg-blue-100 hover:text-blue-700 text-gray-600 rounded-full px-3 py-1 transition-colors"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+          <strong>Error:</strong> {error}
+          {error.includes('META_ACCESS_TOKEN') && (
+            <p className="mt-1 text-red-600">Add your Meta Access Token to <code>.env.local</code></p>
+          )}
+        </div>
+      )}
+
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-xl border-2 border-gray-100 p-4 h-64 animate-pulse bg-white">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-3" />
+              <div className="h-3 bg-gray-100 rounded w-1/2 mb-4" />
+              <div className="space-y-2">
+                <div className="h-3 bg-gray-100 rounded" />
+                <div className="h-3 bg-gray-100 rounded w-5/6" />
+                <div className="h-3 bg-gray-100 rounded w-4/6" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {result && !loading && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="font-semibold text-gray-900">
+                {result.data.length} ads
+                <span className="text-gray-500 font-normal text-sm ml-1.5">
+                  for &ldquo;{query}&rdquo; in {COUNTRIES.find((c) => c.code === country)?.name}
+                </span>
+              </p>
+              {activeOnly && <p className="text-xs text-blue-600 mt-0.5">Active ads only</p>}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Sort:</span>
+              <div className="flex gap-1">
+                {SORT_OPTIONS.map((s) => (
+                  <button
+                    key={s.value}
+                    onClick={() => setSortBy(s.value)}
+                    className={`text-xs px-2.5 py-1.5 rounded-lg transition-colors ${
+                      sortBy === s.value
+                        ? 'bg-blue-600 text-white font-medium'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              <a href={'/dashboard?query=' + encodeURIComponent(query) + '&country=' + country} className="text-xs text-blue-600 hover:underline font-medium ml-2 whitespace-nowrap">{'Full analysis →'}</a>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sortedAds().map((ad: EnrichedAd) => (
+              <AdCard key={ad.id} ad={ad} />
+            ))}
+          </div>
+
+          {cursor && (
+            <div className="text-center pt-2">
+              <button
+                onClick={() => search(true)}
+                disabled={loadingMore}
+                className="px-6 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2 mx-auto"
+              >
+                {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                Load more ads
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!result && !loading && !error && (
+        <div className="text-center py-16 text-gray-400">
+          <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-lg font-medium">Search any product to see real Meta ads</p>
+          <p className="text-sm mt-1">
+            Same results as Ad Library — with a sourcing score layered on top
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
