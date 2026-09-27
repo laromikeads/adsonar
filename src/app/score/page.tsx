@@ -43,20 +43,22 @@ type AdResult = {
 
 export default function ScorePage() {
   const [results, setResults] = useState<AdResult[]>([]);
-  const [error, setError] = useState('');
+  const [status, setStatus] = useState('Waiting for ad data...');
 
   useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const raw = params.get('ads');
-      if (!raw) { setError('No ad data received.'); return; }
-      const ads: { id: string; text: string }[] = JSON.parse(decodeURIComponent(raw));
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== 'https://www.facebook.com') return;
+      const data = event.data;
+      if (!data || !Array.isArray(data.ads)) return;
+      const ads: { id: string; text: string }[] = data.ads;
+      if (ads.length === 0) { setStatus('No ads found.'); return; }
       const scored = ads.map(ad => ({ id: ad.id, text: ad.text, ...scoreAd(ad.text) }));
       scored.sort((a, b) => b.score - a.score);
       setResults(scored);
-    } catch {
-      setError('Failed to parse ad data.');
+      setStatus('');
     }
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   const hot = results.filter(r => r.score >= 75).length;
@@ -70,11 +72,16 @@ export default function ScorePage() {
           <h1 className="font-bold text-gray-900">AdSonar Results</h1>
         </div>
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+        {status && results.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-400 text-sm">{status}</p>
+            <p className="text-gray-300 text-xs mt-2">Click the bookmarklet on Meta Ad Library</p>
+          </div>
+        )}
 
         {results.length > 0 && (
           <>
-            <div className="flex gap-3 mb-4 text-sm">
+            <div className="flex flex-wrap gap-2 mb-4 text-sm">
               <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">{results.length} ads scored</span>
               {hot > 0 && <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-medium">🔥 {hot} Hot</span>}
               {good > 0 && <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">✅ {good} Good</span>}
@@ -91,10 +98,6 @@ export default function ScorePage() {
               ))}
             </div>
           </>
-        )}
-
-        {results.length === 0 && !error && (
-          <p className="text-gray-400 text-sm">Loading...</p>
         )}
       </div>
     </div>
