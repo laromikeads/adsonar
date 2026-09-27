@@ -10,27 +10,14 @@ function getCode() {
   const parts = [
     'javascript:(function(){',
     'var H="' + ADSONAR_URL + '";',
-    'var a=[];',
     'var c=document.querySelectorAll(\'[data-testid="ad-archive-ad-card"]\');',
     'if(!c.length){c=document.querySelectorAll(\'div[class*="_7jyr"]\');}',
-    'if(!c.length){alert("AdSonar: No ads found.");return;}',
-    'c.forEach(function(el,i){a.push({id:"a"+i,text:(el.innerText||"").slice(0,400),pageName:"Ad "+(i+1)});});',
-    'fetch(H+"/api/score",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ads:a})})',
-    '.then(function(r){return r.json();})',
-    '.then(function(d){',
-    'd.results.forEach(function(r,i){',
-    'var el=c[i];if(!el)return;',
-    'el.style.position="relative";',
-    'var o=el.querySelector(".as-b");if(o)o.remove();',
-    'var b=document.createElement("div");',
-    'b.className="as-b";',
-    'b.style.cssText="position:absolute;top:8px;right:8px;z-index:9999;padding:4px 10px;border-radius:20px;font-size:13px;font-weight:700;font-family:sans-serif;background:#fff;border:2px solid "+r.color+";color:"+r.color+";box-shadow:0 2px 8px rgba(0,0,0,.2);";',
-    'b.textContent=r.label+(r.score>0?" ("+r.score+")":"");',
-    'el.appendChild(b);',
-    '});',
-    'var h=d.results.filter(function(r){return r.score>=75;}).length;',
-    'alert("AdSonar: "+a.length+" ads scored. "+h+" are Hot!");',
-    '}).catch(function(e){alert("Error: "+e.message);});',
+    'if(!c.length){alert("AdSonar: No ads found on this page.");return;}',
+    'var a=[];',
+    'c.forEach(function(el,i){a.push({id:"a"+i,text:(el.innerText||"").slice(0,500)});});',
+    'var encoded=encodeURIComponent(JSON.stringify(a));',
+    'var w=window.open(H+"/score?ads="+encoded,"adsonar_score","width=480,height=600,scrollbars=yes");',
+    'if(!w){alert("AdSonar: Please allow popups for this site.");}',
     '})();',
   ];
   return parts.join('');
@@ -70,7 +57,7 @@ export default function BookmarkletPage() {
         <div className="space-y-2 text-sm text-blue-800">
           <div className="flex gap-3"><span className="font-bold">1.</span><span>Open Meta Ad Library and search any product</span></div>
           <div className="flex gap-3"><span className="font-bold">2.</span><span>Click <strong>AdSonar Score</strong> in your bookmarks bar</span></div>
-          <div className="flex gap-3"><span className="font-bold">3.</span><span>Every ad gets a badge: 🔥 Hot, ✅ Good, ~ Weak, ○ Low</span></div>
+          <div className="flex gap-3"><span className="font-bold">3.</span><span>A popup shows every ad scored: 🔥 Hot, ✅ Good, ~ Weak, ○ Low</span></div>
         </div>
       </div>
 
@@ -117,7 +104,7 @@ export default function BookmarkletPage() {
 
       <div className="flex items-start gap-3 text-sm text-gray-500 bg-gray-50 rounded-xl p-4">
         <Globe className="w-5 h-5 mt-0.5 flex-shrink-0" />
-        <span>Works in Chrome, Firefox, and Edge. You must be logged into Facebook to see Ad Library results.</span>
+        <span>Works in Chrome, Firefox, and Edge. Allow popups from facebook.com when prompted.</span>
       </div>
     </div>
   );
