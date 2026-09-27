@@ -14,10 +14,14 @@ function getCode() {
     'if(!c.length){c=document.querySelectorAll(\'div[class*="_7jyr"]\');}',
     'if(!c.length){alert("AdSonar: No ads found on this page.");return;}',
     'var a=[];',
-    'c.forEach(function(el,i){a.push({id:"a"+i,text:(el.innerText||"").slice(0,500)});});',
-    'var encoded=encodeURIComponent(JSON.stringify(a));',
-    'var w=window.open(H+"/score?ads="+encoded,"adsonar_score","width=480,height=600,scrollbars=yes");',
-    'if(!w){alert("AdSonar: Please allow popups for this site.");}',
+    'c.forEach(function(el,i){a.push({id:"a"+i,text:(el.innerText||"").slice(0,400)});});',
+    'var w=window.open(H+"/score","adsonar_score","width=480,height=640,scrollbars=yes");',
+    'if(!w){alert("AdSonar: Please allow popups for this site.");return;}',
+    'var timer=setInterval(function(){',
+    'if(w.closed){clearInterval(timer);return;}',
+    'try{w.postMessage({ads:a},"' + ADSONAR_URL + '");}catch(e){}',
+    '},300);',
+    'setTimeout(function(){clearInterval(timer);},10000);',
     '})();',
   ];
   return parts.join('');
