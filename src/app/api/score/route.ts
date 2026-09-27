@@ -1,54 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const ECOM_SIGNALS = [
-  'توصيل', 'اطلب', 'اشتري', 'للطلب', 'الدفع عند الاستلام', 'الدفع عند الإستلام',
-  'متجر', 'منتج', 'سعر', 'تخفيض', 'عرض', 'مخزون', 'متوفر',
-  'ولاية', 'اطلبه', 'اطلبها', 'اطلبي', 'اطلبو', 'اطلب الآن', 'اطلب الان',
-  'باب منزل', 'باب دارك', 'باب المنزل',
+const STRONG_SIGNALS = [
+  'الدفع عند الاستلام', 'الدفع عند الإستلام', 'باب منزل', 'باب دارك', 'باب المنزل',
+  'توصيل لجميع', 'توصيل مجاني', 'livraison gratuite', 'livraison rapide',
+  'اطلب الآن', 'اطلب الان', 'commandez maintenant', 'order now',
+  'آلاف الطلبات', 'آلاف العملاء', 'نفذ المخزون', 'كميات محدودة',
+  'stock limité', 'rupture de stock', 'sold out', 'limited stock',
+  'تخفيض', 'عرض خاص', 'promotion', 'promo', 'soldes', 'offre limitée',
+];
+
+const BASIC_SIGNALS = [
+  'توصيل', 'اطلب', 'اشتري', 'للطلب', 'متجر', 'منتج', 'سعر', 'مخزون', 'متوفر', 'ولاية',
+  'اطلبه', 'اطلبها', 'اطلبي', 'اطلبو',
   'livraison', 'commander', 'commandez', 'acheter', 'achetez',
-  'boutique', 'produit', 'prix', 'promo', 'soldes', 'wilaya',
-  'delivery', 'order now', 'buy now', 'shop now', 'add to cart',
+  'boutique', 'produit', 'prix', 'wilaya',
+  'delivery', 'buy now', 'shop now', 'add to cart',
 ];
 
-const NON_ECOM_SIGNALS = [
-  'مدبلج', 'مسلسل', 'حلقة', 'موسم', 'مشاهدة', 'مسرحية', 'انمي',
-  'دراما', 'رواية', 'قصة', 'روائي', 'فيلم عربي',
-  'الملكة', 'الأميرة', 'القصر', 'العرش', 'الوريث',
-  'تستيقظ', 'إيزابيلا',
-  'episode', 'serie', 'saison', 'regarder', 'streaming', 'doublage',
-  'movie', 'drama', 'feuilleton', 'fiction', 'romance novel', 'thriller',
-  'rencontre', 'celibataire', 'dating',
-  'election', 'politique', 'gouvernement', 'انتخاب', 'حزب', 'ولاية منتدبة',
-  'الوالي', 'الوالية', 'بلدية', 'مقاطعة', 'برلمان', 'رئاسي',
-  'emploi', 'recrutement', 'توظيف', 'تكوين مهني',
-  'فضائل', 'حديث', 'الإمام', 'الشيعة', 'كربلاء',
-  'منشطي يسير', 'شريك يسير', 'yassir cash', 'yassir driver',
-  'أخبار', 'تقرير', 'مراسل', 'صحيفة',
-  'استثمار', 'مشروع استثماري', 'طاقة شمسية', 'crypto', 'bitcoin', 'invest',
-  'this content was removed', 'ce contenu a été supprimé',
-];
-
-function scoreText(text: string): { score: number; label: string; signal: string; isEcom: boolean } {
+function scoreAd(text: string): { score: number; label: string; color: string } {
   const t = text.toLowerCase();
 
-  const nonEcom = NON_ECOM_SIGNALS.find(s => t.includes(s.toLowerCase()));
-  if (nonEcom) {
-    return { score: 0, label: 'Not Ecom', signal: nonEcom, isEcom: false };
-  }
+  const strongCount = STRONG_SIGNALS.filter(s => t.includes(s.toLowerCase())).length;
+  const basicCount = BASIC_SIGNALS.filter(s => t.includes(s.toLowerCase())).length;
 
-  if (!t.trim()) {
-    return { score: 50, label: 'Image Only', signal: '', isEcom: true };
-  }
+  const score = Math.min(strongCount * 25 + basicCount * 10, 99);
 
-  const ecomSignals = ECOM_SIGNALS.filter(s => t.includes(s.toLowerCase()));
-  if (ecomSignals.length === 0) {
-    return { score: 0, label: 'No Signal', signal: '', isEcom: false };
-  }
-
-  const score = Math.min(50 + ecomSignals.length * 15, 99);
-  const label = score >= 80 ? 'Hot 🔥' : score >= 65 ? 'Good ✅' : 'Weak';
-
-  return { score, label, signal: ecomSignals[0], isEcom: true };
+  if (score >= 75) return { score, label: '🔥 Hot', color: '#166534' };
+  if (score >= 50) return { score, label: '✅ Good', color: '#1e40af' };
+  if (score >= 25) return { score, label: '~ Weak', color: '#92400e' };
+  return { score, label: '○ Low', color: '#6b7280' };
 }
 
 export async function POST(request: NextRequest) {
@@ -58,7 +38,7 @@ export async function POST(request: NextRequest) {
   const results = ads.map(ad => ({
     id: ad.id,
     pageName: ad.pageName,
-    ...scoreText(ad.text),
+    ...scoreAd(ad.text),
   }));
 
   return NextResponse.json({ results });
